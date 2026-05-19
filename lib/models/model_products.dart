@@ -21,7 +21,7 @@ class ModelProducts {
       'id': id,
       'code': code,
       'name': name,
-      'categoryId': categoryId,
+      'categoryId': categoryId, //foreign key
       'image': image,
     };
   }
