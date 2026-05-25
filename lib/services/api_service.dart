@@ -1,14 +1,18 @@
 import 'package:openfoodfacts/openfoodfacts.dart';
 
 class ApiService {
-  Future<Product?> getProduct() async {
+  static Future<Product?> getProduct(String barcode) async {
     OpenFoodAPIConfiguration.userAgent = UserAgent(name: 'FoodieScan');
 
     //se pone el signo de interrogacion pk cabe la posibildiad que el producto no este registrado.
-    var barcode = '8480000171320';
+    Future<String> barcodeReciever(String barcode) async {
+      return barcode;
+    }
+
+    Future<String> Function(String barcode) barcode = barcodeReciever;
 
     final ProductQueryConfiguration configuration = ProductQueryConfiguration(
-      barcode,
+      barcode as String,
       language: OpenFoodFactsLanguage.SPANISH,
       fields: [
         ProductField.NAME,
@@ -18,6 +22,7 @@ class ApiService {
       version: ProductQueryVersion.v3,
     );
 
+    //obtenemos el producto segun nuestra configuracion.
     final ProductResultV3 result = await OpenFoodAPIClient.getProductV3(
       configuration,
     );
@@ -37,6 +42,6 @@ class ApiService {
 }
 
 void main() async {
-  ApiService miApi = ApiService();
-  await miApi.getProduct();
+  String barcode = '123';
+  await ApiService.getProduct(barcode);
 }

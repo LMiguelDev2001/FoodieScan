@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:foodie_scan/services/api_service.dart';
 
 void main() {
   runApp(const MyApp());

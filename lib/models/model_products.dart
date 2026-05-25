@@ -4,14 +4,14 @@ class ModelProducts {
   final int? id;
   final String code;
   final String name;
-  final int categoryId;
+  final int? categoryId;
   final String image;
 
   ModelProducts({
     this.id,
     required this.name,
     required this.code,
-    required this.categoryId,
+    this.categoryId,
     required this.image,
   });
 

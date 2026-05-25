@@ -5,6 +5,8 @@ import '../models/model_fridge.dart';
 import '../models/model_products.dart';
 
 class DatabaseHelper {
+  //patron singleton
+  //el punto de acceso es instance
   static final DatabaseHelper instance = DatabaseHelper._instance();
   static Database? _database;
   DatabaseHelper._instance();
@@ -38,7 +40,7 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT NOT NULL,
       name TEXT NOT NULL,
-      categoryId INTEGER NOT NULL,
+      categoryId INTEGER,
       image TEXT NOT NULL,
 
       FOREIGN KEY (categoryId) REFERENCES categories(id)    
@@ -48,6 +50,7 @@ class DatabaseHelper {
     await db.execute('''CREATE TABLE fridge(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       productId INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
       expirationDate TEXT NOT NULL,
 
       FOREIGN KEY (productId) REFERENCES products(id)   
@@ -104,6 +107,7 @@ class DatabaseHelper {
         .toList();
   }
 
+  //PRODUCTOS
   //PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**PRODUCTS**
   //funcion para insertar los productos dentro de la tabla.
   Future<int> insertProducts(ModelProducts products) async {
@@ -111,23 +115,52 @@ class DatabaseHelper {
     return await db.insert('products', products.toMap());
   }
 
-  //funcion pora insertar las categorias.
-
   //funcion para leer los productos.
   Future<List<ModelProducts>> readProducts() async {
     Database db = await instance.db;
-
     final List<Map<String, dynamic>> productsMaps = await db.query(
       'products',
     ); //importante resaltar que no es necesario concretar el tipo de dato. Dart lo hace de forma automatica.
     //Aquí se ha hecho por fines educativos, para no liar al alumno o al profesor.
-
     return productsMaps
         .map((mapping) => ModelProducts.fromMap(mapping))
         .toList();
   }
 
-  //NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**
+  //funcion para leer producto por codigo de barras.
+  //Se usa para buscar un producto y comprobar su existencia en la base de datos local.
+  Future<ModelProducts?> readProductByBarcode(String code) async {
+    Database db = await instance.db;
+    final List<Map<String, dynamic>> barcodeProduct = await db.query(
+      'products',
+      where: 'code = ?',
+      whereArgs: [code],
+    );
+    //si no encuentra el producto, no devuelve null, devuelve una lista vacia (pero no null);
+    if (barcodeProduct.isEmpty) {
+      return null;
+    } else {
+      return barcodeProduct
+          .map((mapped) => ModelProducts.fromMap(mapped))
+          .toList()
+          .first;
+    }
+  }
+
+  //funcion para actualziar la categoria de product
+  Future<int> updateCategory(int categoryId, int id) async {
+    Database db = await instance.db;
+    return await db.rawUpdate('''
+      UPDATE products
+
+      SET categoryId = $categoryId
+
+      WHERE id = $id;
+
+    ''');
+  }
+
+  //NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA
   //funcion para insertar los products comprados dentro de la tabla.
   Future<int> insertGoods(ModelFridge goods) async {
     Database db = await instance.db;
@@ -136,15 +169,22 @@ class DatabaseHelper {
 
   //funcion pora insertar las mercancias.
 
-  //funcion para leer la compra.
+  //funcion para leer la compra. Esto significa que la función siguiente sirve para leer la compra
   Future<List<ModelFridge>> readGoods() async {
     Database db = await instance.db;
 
-    final List<Map<String, dynamic>> goodsMaps = await db.query(
-      'fridge',
-    ); //importante resaltar que no es necesario concretar el tipo de dato. Dart lo hace de forma automatica.
-    //Aquí se ha hecho por fines educativos, para no liar al alumno o al profesor.
-
+    final List<Map<String, dynamic>> goodsMaps = await db.rawQuery('''
+      SELECT
+        fridge.id,
+        fridge.productId,
+        fridge.quantity, 
+        fridge.expirationDate, 
+        products.name AS productName, 
+        products.image AS productImage,
+        products.categoryId AS productCategoryId,
+      FROM fridge
+      INNER JOIN products on fridge.productId = products.id
+    ''');
     return goodsMaps.map((mapping) => ModelFridge.fromMap(mapping)).toList();
   }
 }
