@@ -15,6 +15,8 @@ class ProductController {
         var apiProductReq = await ApiService.getProduct(barcode);
 
         ModelProducts apiObtainedProduct = ModelProducts(
+          //se ponen los '?' porque los parametros pueden ser nulos y en caso de serlo (??)
+          // tenemo que escribir una alternativa
           code: apiProductReq?.barcode ?? barcode,
           name: apiProductReq?.productName ?? 'no name',
           image: apiProductReq?.imageFrontSmallUrl ?? 'imagen por defecto',

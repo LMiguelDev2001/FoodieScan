@@ -49,7 +49,7 @@ class DatabaseHelper {
     //tabla del inventario
     await db.execute('''CREATE TABLE fridge(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      productId INTEGER NOT NULL,
+      productId INTEGER,
       quantity INTEGER NOT NULL,
       expirationDate TEXT NOT NULL,
 
@@ -186,5 +186,16 @@ class DatabaseHelper {
       INNER JOIN products on fridge.productId = products.id
     ''');
     return goodsMaps.map((mapping) => ModelFridge.fromMap(mapping)).toList();
+  }
+
+  Future<int> deleteProduct(int id) async {
+    Database db = await instance.db;
+
+    return await db.rawDelete('''
+      DELETE FROM fridge
+
+      WHERE id = $id
+      
+    ''');
   }
 }
