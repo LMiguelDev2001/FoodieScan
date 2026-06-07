@@ -11,8 +11,12 @@ class ProductController {
         .readProductByBarcode(barcode);
     if (obtainedProduct == null) {
       try {
+        print('lo esta buscando en la api');
         //busca el producto en la api externa.
         var apiProductReq = await ApiService.getProduct(barcode);
+        if (apiProductReq == null) {
+          return null;
+        }
 
         ModelProducts apiObtainedProduct = ModelProducts(
           //se ponen los '?' porque los parametros pueden ser nulos y en caso de serlo (??)
@@ -23,7 +27,8 @@ class ProductController {
           categoryId: null,
         );
         //insertamos el producto en la base de datos local.
-        await DatabaseHelper.instance.insertProducts(apiObtainedProduct);
+        // await DatabaseHelper.instance.insertProducts(apiObtainedProduct);
+        //le pasamos el producto obtenido a FormView
 
         return apiObtainedProduct;
       } catch (er) {
@@ -32,6 +37,8 @@ class ProductController {
       }
       //en caso de que NO sea null (de que existe en la bbdd local).
     } else {
+      //le pasamos el producto obtenido a FormView
+
       return obtainedProduct;
     }
   }

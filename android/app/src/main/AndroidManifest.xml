@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--Permisos para la camara-->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--Permisos para trabajar con las notificaciones-->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>    
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>    
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    
     <application
         android:label="foodie_scan"
         android:name="${applicationName}"

@@ -41,7 +41,7 @@ class DatabaseHelper {
       code TEXT NOT NULL,
       name TEXT NOT NULL,
       categoryId INTEGER,
-      image TEXT NOT NULL,
+      image TEXT,
 
       FOREIGN KEY (categoryId) REFERENCES categories(id)    
     )''');
@@ -69,7 +69,7 @@ class DatabaseHelper {
   //funcion pora insertar las categorias.
   Future<void> addDefaultCategories(Database db) async {
     List<ModelCategories> addCategories = [
-      ModelCategories(name: 'leche y derivados', image: 'assets/1.png'),
+      ModelCategories(name: 'lacteos', image: 'assets/1.png'),
       ModelCategories(name: 'carne, huevos y pescados', image: 'assets/2.png'),
       ModelCategories(
         name: 'tubérculos, legumbres y frutos secos',
@@ -77,14 +77,8 @@ class DatabaseHelper {
       ),
       ModelCategories(name: 'verduras y hortalizas', image: 'assets/4.png'),
       ModelCategories(name: 'frutas ', image: 'assets/5.png'),
-      ModelCategories(
-        name: 'pan, pasta, cereales y azúcar',
-        image: 'assets/6.png',
-      ),
-      ModelCategories(
-        name: 'grasas, aceite y mantequillas',
-        image: 'assets/7.png',
-      ),
+      ModelCategories(name: 'pan, pasta, cereales', image: 'assets/6.png'),
+      ModelCategories(name: 'aceite y mantequillas', image: 'assets/7.png'),
       ModelCategories(name: 'otros ', image: 'assets/8.png'),
     ];
 
@@ -120,6 +114,7 @@ class DatabaseHelper {
     Database db = await instance.db;
     final List<Map<String, dynamic>> productsMaps = await db.query(
       'products',
+      orderBy: 'id DESC',
     ); //importante resaltar que no es necesario concretar el tipo de dato. Dart lo hace de forma automatica.
     //Aquí se ha hecho por fines educativos, para no liar al alumno o al profesor.
     return productsMaps
@@ -160,6 +155,17 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<int> deleteProduct(int id) async {
+    Database db = await instance.db;
+
+    return await db.rawDelete('''
+      DELETE FROM products
+
+      WHERE id = $id
+      
+    ''');
+  }
+
   //NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA**NEVERA
   //funcion para insertar los products comprados dentro de la tabla.
   Future<int> insertGoods(ModelFridge goods) async {
@@ -169,7 +175,7 @@ class DatabaseHelper {
 
   //funcion pora insertar las mercancias.
 
-  //funcion para leer la compra. Esto significa que la función siguiente sirve para leer la compra
+  //funcion para leer la compra. Esto significa que la funcióln siguiente sirve para leer la compra
   Future<List<ModelFridge>> readGoods() async {
     Database db = await instance.db;
 
@@ -181,21 +187,39 @@ class DatabaseHelper {
         fridge.expirationDate, 
         products.name AS productName, 
         products.image AS productImage,
-        products.categoryId AS productCategoryId,
+        products.categoryId AS productCategoryId
       FROM fridge
+
       INNER JOIN products on fridge.productId = products.id
+      ORDER BY fridge.id DESC
+
     ''');
     return goodsMaps.map((mapping) => ModelFridge.fromMap(mapping)).toList();
   }
 
-  Future<int> deleteProduct(int id) async {
+  //Borrar un elemento de la nevera uno a uno. Si llega a 0, se borra el producto.
+  Future<void> deleteIndividualFridgeProduct(int id) async {
+    Database db = await instance.db;
+
+    await db.rawUpdate('''
+      UPDATE fridge
+        SET quantity = quantity - 1
+        WHERE id = $id         
+    ''');
+
+    await db.rawDelete('''
+      DELETE FROM fridge
+      WHERE id = $id AND quantity <= 0
+      ''');
+  }
+
+  //borra el producto de la nevera del tiron.
+  Future<int> deleteFullFridgeProduct(int id) async {
     Database db = await instance.db;
 
     return await db.rawDelete('''
       DELETE FROM fridge
-
-      WHERE id = $id
-      
+      WHERE productId = $id
     ''');
   }
 }

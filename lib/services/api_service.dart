@@ -5,14 +5,9 @@ class ApiService {
     OpenFoodAPIConfiguration.userAgent = UserAgent(name: 'FoodieScan');
 
     //se pone el signo de interrogacion pk cabe la posibildiad que el producto no este registrado.
-    Future<String> barcodeReciever(String barcode) async {
-      return barcode;
-    }
-
-    Future<String> Function(String barcode) barcode = barcodeReciever;
 
     final ProductQueryConfiguration configuration = ProductQueryConfiguration(
-      barcode as String,
+      barcode,
       language: OpenFoodFactsLanguage.SPANISH,
       fields: [
         ProductField.NAME,
@@ -23,25 +18,18 @@ class ApiService {
     );
 
     //obtenemos el producto segun nuestra configuracion.
-    final ProductResultV3 result = await OpenFoodAPIClient.getProductV3(
-      configuration,
-    );
-
-    if (result.status == ProductResultV3.statusSuccess) {
-      //RECUERDA QUITAR LOS PRINTSSSSSSSS
-      print('funciona');
-      print(result.product?.productName);
-      print(result.product?.imageFrontSmallUrl);
-      return result.product;
-    } else {
-      throw Exception(
-        'el producto con el codigo de barras: $barcode no ha sido encontrado',
+    try {
+      final ProductResultV3 result = await OpenFoodAPIClient.getProductV3(
+        configuration,
       );
+
+      if (result.status == ProductResultV3.statusSuccess) {
+        return result.product;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      throw Exception('Fallo por parte de la api externa');
     }
   }
-}
-
-void main() async {
-  String barcode = '123';
-  await ApiService.getProduct(barcode);
 }

@@ -2,17 +2,17 @@
 
 class ModelProducts {
   final int? id;
+  final int? categoryId;
+  final String? image;
   final String code;
   final String name;
-  final int? categoryId;
-  final String image;
 
   ModelProducts({
     this.id,
+    this.categoryId,
+    this.image,
     required this.name,
     required this.code,
-    this.categoryId,
-    required this.image,
   });
 
   //tradcutor para sqlite

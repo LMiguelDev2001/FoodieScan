@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import '../services/database_helper.dart';
-import '../models/model_fridge.dart';
+import '../models/model_products.dart';
 
-class FridgeView extends StatefulWidget {
+class ProductsView extends StatefulWidget {
   //llave para hacer ref
-  const FridgeView({super.key});
+  const ProductsView({super.key});
 
   @override
-  State<FridgeView> createState() => _FridgeViewState(); //privado para asegurarnos que las otras vitas no tengan acceso.
+  State<ProductsView> createState() => _ProductsViewState(); //privado para asegurarnos que las otras vitas no tengan acceso.
 }
 
-class _FridgeViewState extends State<FridgeView> {
+class _ProductsViewState extends State<ProductsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<ModelFridge>>(
-        future: DatabaseHelper.instance.readGoods(),
+      body: FutureBuilder<List<ModelProducts>>(
+        //leemos todos los productos registrados hasta la fecha.
+        future: DatabaseHelper.instance.readProducts(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -24,75 +25,66 @@ class _FridgeViewState extends State<FridgeView> {
             );
           }
           if (snapshot.hasData) {
-            final fridgeList = snapshot
-                .data!; // ! al final pk le debemos de decir a dart que siemrpe va a recibir un dato
+            // ! al final pk le debemos de decir a dart que siemrpe va a recibir un dato
+            final productsList = snapshot.data!;
 
             return ListView.separated(
               itemBuilder: (context, index) {
-                final actualFridgeItem = fridgeList[index];
+                final actualProduct = productsList[index];
 
                 //pintamos la tarjeta
                 return Row(
-                  key: ValueKey(actualFridgeItem.id),
+                  key: ValueKey(actualProduct.id),
                   children: [
                     Image.network(
-                      actualFridgeItem.productImage ??
-                          'assets/imgs/noImage.png',
+                      actualProduct.image ?? 'assets/imgs/noImage.png',
                       width: 50,
                       height: 50,
                     ),
                     const SizedBox(width: 12),
-                    //32
                     //columna nombre y cantidad
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-
                         children: [
                           //nombre del producto
-                          Text(
-                            actualFridgeItem.productName ?? 'no name',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          //fecha de caducidad del producto
-                          Text('Cantidad: ${actualFridgeItem.quantity}'),
-
-                          Text(
-                            'CAD: ${actualFridgeItem.expirationDate.toIso8601String().split('T')[0]}',
-                          ),
+                          Text(actualProduct.name),
                         ],
                       ),
                     ),
+
                     //columna boton delete y fecha caducidad
-                    //empujamos el resto de elementos hacia los lados
                     Column(
                       crossAxisAlignment:
                           CrossAxisAlignment.end, // lo movemos al final
                       children: [
                         IconButton(
                           onPressed: () async {
+                            //Si borramos un producto de la base de datos local, se borra tambien de la nevera
                             await DatabaseHelper.instance
-                                .deleteIndividualFridgeProduct(
-                                  actualFridgeItem.id!,
-                                );
+                                .deleteFullFridgeProduct(actualProduct.id!);
+
+                            await DatabaseHelper.instance.deleteProduct(
+                              actualProduct.id!,
+                            );
+                            //si nos salimos de la app, se cancela el proceso.
+                            if (!mounted) return;
                             //una vez modificamos un item del widget, llamamos a setstate
                             setState(() {});
                           },
+                          //el icono (dart ya tiene iconos nativos)
                           icon: const Icon(Icons.delete),
                         ),
-
-                        //fecha de caducidad del producto
                       ],
                     ),
                   ],
                 );
               },
               separatorBuilder: (context, index) => const Divider(),
-              itemCount: fridgeList.length,
+              itemCount: productsList.length,
             );
           } else {
-            return const Center(child: Text('Error al cargar el producto'));
+            return const Center(child: Text('Error al cargar los productos'));
           }
         },
       ),
