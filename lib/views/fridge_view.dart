@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/database_helper.dart';
 import '../models/model_fridge.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../main.dart';
+import 'dart:io' show Platform;
 
 class FridgeView extends StatefulWidget {
   //llave para hacer ref
@@ -11,90 +14,160 @@ class FridgeView extends StatefulWidget {
 }
 
 class _FridgeViewState extends State<FridgeView> {
+  //Variable global para nuestra fuente
+  final TextStyle retroStyle = GoogleFonts.pixelifySans(
+    textStyle: TextStyle(color: Colors.white, fontSize: 16),
+  );
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<ModelFridge>>(
-        future: DatabaseHelper.instance.readGoods(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              //constante porque este child nunca va a cambiar o ser modificado.
-              child: CircularProgressIndicator(),
-            );
-          }
-          if (snapshot.hasData) {
-            final fridgeList = snapshot
-                .data!; // ! al final pk le debemos de decir a dart que siemrpe va a recibir un dato
+      backgroundColor: Color(0xFF1E1E2C),
+      appBar: AppBar(
+        title: Text('MI INVENTARIO', style: retroStyle.copyWith(fontSize: 19)),
+        backgroundColor: Colors.transparent,
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: FutureBuilder<List<ModelFridge>>(
+          future: DatabaseHelper.instance.readGoods(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                //Constante porque este child nunca va a cambiar o ser modificado.
+                child: CircularProgressIndicator(),
+              );
+            }
+            if (snapshot.hasData) {
+              final fridgeList = snapshot
+                  .data!; // ! Al final pk le debemos de decir a dart que siemrpe va a recibir un dato
 
-            return ListView.separated(
-              itemBuilder: (context, index) {
-                final actualFridgeItem = fridgeList[index];
+              return ListView.separated(
+                padding: EdgeInsets.all(12),
 
-                //pintamos la tarjeta
-                return Row(
-                  key: ValueKey(actualFridgeItem.id),
-                  children: [
-                    Image.network(
-                      actualFridgeItem.productImage ??
-                          'assets/imgs/noImage.png',
-                      width: 50,
-                      height: 50,
+                itemBuilder: (context, index) {
+                  final actualFridgeItem = fridgeList[index];
+
+                  //Pintamos la tarjeta
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      border: Border.all(color: Colors.white, width: 2),
+                      borderRadius: BorderRadius.zero,
                     ),
-                    const SizedBox(width: 12),
-                    //32
-                    //columna nombre y cantidad
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-
-                        children: [
-                          //nombre del producto
-                          Text(
-                            actualFridgeItem.productName ?? 'no name',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          //fecha de caducidad del producto
-                          Text('Cantidad: ${actualFridgeItem.quantity}'),
-
-                          Text(
-                            'CAD: ${actualFridgeItem.expirationDate.toIso8601String().split('T')[0]}',
-                          ),
-                        ],
-                      ),
-                    ),
-                    //columna boton delete y fecha caducidad
-                    //empujamos el resto de elementos hacia los lados
-                    Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.end, // lo movemos al final
+                    child: Row(
+                      key: ValueKey(actualFridgeItem.id),
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          onPressed: () async {
-                            await DatabaseHelper.instance
+                        Image.network(
+                          actualFridgeItem.productImage ??
+                              'assets/imgs/noImage.png',
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset('assets/icons/notFound.png');
+                          },
+                        ),
+                        const SizedBox(width: 12),
+
+                        //Datos del producto
+                        //Columna nombre y cantidad
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                            children: [
+                              //Nombre del producto
+                              Text(
+                                actualFridgeItem.productName ?? 'no name',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: retroStyle.copyWith(
+                                  color: Colors.greenAccent,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+
+                              //Fecha de caducidad del producto
+                              Text(
+                                'Cantidad: ${actualFridgeItem.quantity}',
+                                style: retroStyle,
+                              ),
+                              const SizedBox(height: 4),
+
+                              Text(
+                                'CAD: ${actualFridgeItem.expirationDate.toIso8601String().split('T')[0]}',
+                                style: retroStyle.copyWith(
+                                  color: Colors.orangeAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        //Columna boton borrar
+                        //Empujamos el resto de elementos hacia los lados
+                        GestureDetector(
+                          //Lo movemos al final
+                          onTap: () async {
+                            int deletedRows = await DatabaseHelper.instance
                                 .deleteIndividualFridgeProduct(
                                   actualFridgeItem.id!,
                                 );
-                            //una vez modificamos un item del widget, llamamos a setstate
+                            //Una vez modificamos un item del widget, llamamos a setstate
                             setState(() {});
-                          },
-                          icon: const Icon(Icons.delete),
-                        ),
 
-                        //fecha de caducidad del producto
+                            //Tenemos que multiplicarlo *10 pk no buscan el id del producto, busca el de la notificaion (idProducto * 10)
+                            if (!Platform.isWindows && deletedRows == 1) {
+                              //0 dias
+                              await notifications.cancel(
+                                id: (actualFridgeItem.id! * 10),
+                              );
+
+                              //1 dia
+                              await notifications.cancel(
+                                id: (actualFridgeItem.id! * 10) + 1,
+                              );
+                              //3 dias
+                              await notifications.cancel(
+                                id: (actualFridgeItem.id! * 10) + 3,
+                              );
+
+                              //7 dias
+                              await notifications.cancel(
+                                id: (actualFridgeItem.id! * 10) + 7,
+                              );
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: Image.asset(
+                              'assets/icons/basura.png',
+                              fit: BoxFit.contain,
+                              width: 24,
+                              height: 24,
+                              filterQuality: FilterQuality.none,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ],
-                );
-              },
-              separatorBuilder: (context, index) => const Divider(),
-              itemCount: fridgeList.length,
-            );
-          } else {
-            return const Center(child: Text('Error al cargar el producto'));
-          }
-        },
+                  );
+                },
+                separatorBuilder: (context, index) => const Divider(),
+                itemCount: fridgeList.length,
+              );
+            } else {
+              return const Center(child: Text('Error al cargar el producto'));
+            }
+          },
+        ),
       ),
     );
   }

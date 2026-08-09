@@ -5,6 +5,8 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
 import 'package:flutter/foundation.dart';
 import '../controllers/product_controller.dart';
 import '../views/form_view.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:io' show Platform;
 
 class ScannerView extends StatefulWidget {
   //llave para hacer ref
@@ -15,6 +17,11 @@ class ScannerView extends StatefulWidget {
 }
 
 class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
+  //Fuente pixelart
+  final TextStyle retroStyle = GoogleFonts.pixelifySans(
+    textStyle: TextStyle(color: Colors.white, fontSize: 16),
+  );
+
   //variables globales
   CameraController? controller;
   final barcodeScanner = BarcodeScanner();
@@ -27,7 +34,9 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _getCamera();
+    if (!Platform.isWindows) {
+      _getCamera();
+    }
   }
 
   @override
@@ -58,32 +67,164 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //si es null
-      body: (controller == null || !controller!.value.isInitialized)
+      body: Platform.isWindows
+          //En caso de que el SO sea Windowss y no un movil.
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'WINDOWS: CÁMARA DESACTIVADA',
+                      style: retroStyle.copyWith(color: Colors.redAccent),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: manualBarcode,
+                      style: retroStyle,
+                      decoration: InputDecoration(
+                        hintText: 'Introduce el código de barras...',
+                        hintStyle: retroStyle.copyWith(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (manualBarcode.text.isNotEmpty) {
+                          ModelProducts? resProcessBarcode;
+                          try {
+                            //Intentamos llamar a la API o a la base de datos local.
+                            resProcessBarcode = await ProductController()
+                                .processBarcode(manualBarcode.text);
+
+                            //En caso de que de error:
+                          } catch (error) {
+                            if (!mounted) {
+                              return;
+                            }
+
+                            //Limpiamos las notificaiones activas si las hay.
+                            ScaffoldMessenger.of(context).clearSnackBars();
+
+                            //En caso de error de conexion
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Container(
+                                  padding: EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orangeAccent,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                  child: Text(
+                                    'Error de conexion, vuelvalo a intentar mas tarde',
+                                    style: retroStyle,
+                                  ),
+                                ),
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                              ),
+                            );
+
+                            //Metemos delay entre notificaiones
+                            await Future.delayed(const Duration(seconds: 3));
+                          }
+
+                          //Si no hay un error de conexion pero el codigo de barras es null (que no existe) salta un error en rojo.
+                          if (resProcessBarcode == null) {
+                            if (!mounted) {
+                              return;
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Container(
+                                  padding: EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                  child: Text(
+                                    'El producto es incorrecto o no se encuentra en la base de datos.',
+                                    style: retroStyle,
+                                  ),
+                                ),
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                              ),
+                            );
+                            manualBarcode.clear();
+                            return;
+                          }
+                          manualBarcode.clear();
+                          if (!mounted) {
+                            return;
+                          }
+
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  FormView(scannedProduct: resProcessBarcode!),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text('BUSCAR PRODUCTO', style: retroStyle),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          //MOVILES
+          : (controller == null || !controller!.value.isInitialized)
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                //Area de la camara
                 Expanded(child: CameraPreview(controller!)),
+
+                //Contenedor para la introduccion manual
                 Container(
-                  padding: const EdgeInsets.all(16.0),
-                  color: Colors.grey[900],
+                  color: Color(0xFF1E1E2C),
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: manualBarcode,
-                          onChanged: (String value) {
-                            setState(() {});
-                          },
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Codigo de barras',
-                            hintStyle: const TextStyle(color: Colors.grey),
-                            filled: true,
-                            fillColor: Colors.grey[800],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
+                        child: Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            border: Border.all(color: Colors.white, width: 2),
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          child: TextField(
+                            controller: manualBarcode,
+                            onChanged: (String value) {
+                              setState(() {});
+                            },
+                            style: retroStyle,
+                            decoration: InputDecoration(
+                              hintText: 'CÓDIGO DE BARRAS',
+                              hintStyle: retroStyle,
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              enabledBorder: InputBorder.none,
                             ),
                           ),
                         ),
@@ -96,41 +237,109 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
                                 //Le quitamos el foco a la caja de texto y vaciamos su contenido:
                                 FocusScope.of(context).unfocus();
 
-                                final resProcessBarcode =
-                                    await ProductController().processBarcode(
-                                      manualBarcode.text,
-                                    );
                                 if (!mounted) return;
+                                ModelProducts? resProcessBarcode;
+                                try {
+                                  resProcessBarcode = await ProductController()
+                                      .processBarcode(manualBarcode.text);
+                                } catch (error) {
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  //Limpiamos las notificaiones activas si las hay.
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).clearSnackBars();
 
-                                if (resProcessBarcode == null) {
+                                  //En caso de error de conexion
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'El producto es incorrecto o no se encuentra en la base de datos, vuelve a intentarlo',
+                                    SnackBar(
+                                      content: Container(
+                                        padding: EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orangeAccent,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Text(
+                                          'Error de conexion, vuelvalo a intentar mas tarde',
+                                          style: retroStyle,
+                                        ),
                                       ),
-                                      backgroundColor: Colors.red,
+                                      backgroundColor: Colors.transparent,
+                                      elevation: 0,
+                                    ),
+                                  );
+                                  copiedBarcode = null;
+
+                                  //Metemos delay entre notificaiones.
+                                  await Future.delayed(
+                                    const Duration(seconds: 3),
+                                  );
+                                  isFrameCaptured = false;
+                                  return;
+                                }
+                                //Si no hay un error de conexion pero el codigo de barras es null (que no existe) salta un error en rojo.
+                                if (resProcessBarcode == null) {
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Container(
+                                        padding: EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Text(
+                                          'El producto es incorrecto o no se encuentra en la base de datos.',
+                                          style: retroStyle,
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.transparent,
+                                      elevation: 0,
                                     ),
                                   );
                                   manualBarcode.clear();
                                   return;
                                 }
+
+                                //En caso de que SI exista el codigo de barras:
                                 manualBarcode.clear();
                                 if (!mounted) {
                                   return;
                                 }
+
+                                CameraController? copyController = controller;
+                                setState(() {
+                                  controller = null;
+                                });
+                                await copyController?.dispose();
+
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => FormView(
-                                      productoEscaneado: resProcessBarcode,
+                                      scannedProduct: resProcessBarcode!,
                                     ),
                                   ),
                                 );
+                                _getCamera();
                               },
-                        icon: const Icon(
-                          Icons.check,
-                          color: Colors.greenAccent,
-                          size: 30,
+                        icon: Image.asset(
+                          'assets/icons/tick.png',
+                          fit: BoxFit.contain,
+                          width: 40,
+                          height: 40,
+                          filterQuality: FilterQuality.none,
                         ),
                       ),
                     ],
@@ -141,14 +350,14 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
     );
   }
 
-  //funcion para conseguir la camra del dispositivo.
+  //Funcion para conseguir la camra del dispositivo e implementar la loica de el escaner de codigo de barras.
   Future<void> _getCamera() async {
     try {
       List<CameraDescription> cameras = await availableCameras();
       if (cameras.isEmpty) {
         return;
       } else {
-        //no estamos usando una funcion del objeto, estamos reasignando su valor y dart permite hacer esto. Por eso usamos la variable original.
+        //No estamos usando una funcion del objeto, estamos reasignando su valor y dart permite hacer esto. Por eso usamos la variable original.
         controller = CameraController(
           cameras[0],
           ResolutionPreset.max,
@@ -159,7 +368,7 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
         if (!mounted) return;
         setState(() {});
 
-        //logica del escaneo de codigo de barras
+        //Logica del escaneo de codigo de barras.
         controller?.startImageStream((CameraImage img) async {
           if (isFrameCaptured == true) {
             return;
@@ -167,13 +376,13 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
           isFrameCaptured = true;
 
           try {
-            final finalImg = processImg(img);
+            final finalImg = _processImg(img);
 
             if (finalImg == null) return;
 
             final List<Barcode> barcodesList = await barcodeScanner
                 .processImage(finalImg);
-            //si hay codigos de barras
+            //Si hay codigos de barras
             if (barcodesList.isNotEmpty) {
               final String readBarcode =
                   barcodesList.first.rawValue ??
@@ -184,8 +393,8 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
                 return;
               }
               copiedBarcode = readBarcode;
-              //cortamos la captura de frames
-              //le pasamos al controlador el codigo de barras obtenido para que lo procese.
+              //Cortamos la captura de frames
+              //Le pasamos al controlador el codigo de barras obtenido para que lo procese.
               ModelProducts? resProcessBarcode;
               //En caso de que haya un error de conexion, hacemos un try catch para capturar el error.
               try {
@@ -194,11 +403,25 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
                 );
               } catch (error) {
                 if (!mounted) return;
+                //Para que no se pongan encimas unas de otras, ponemos clear.
                 ScaffoldMessenger.of(context).clearSnackBars();
+
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Error de conexion, intentalo mas tarde'),
-                    backgroundColor: Colors.orange,
+                  SnackBar(
+                    content: Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orangeAccent,
+                        border: Border.all(color: Colors.white, width: 2),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      child: Text(
+                        'Error de conexion, vuelvalo a intentar mas tarde',
+                        style: retroStyle,
+                      ),
+                    ),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
                   ),
                 );
                 copiedBarcode = null;
@@ -206,15 +429,26 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
                 isFrameCaptured = false;
                 return;
               }
+
               if (!mounted) return;
               if (resProcessBarcode == null) {
                 ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'El producto es incorrecto o no se encuentra en la base de datos.',
+                  SnackBar(
+                    content: Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        border: Border.all(color: Colors.white, width: 2),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      child: Text(
+                        'El producto es incorrecto o no se encuentra en la base de datos.',
+                        style: retroStyle,
+                      ),
                     ),
-                    backgroundColor: Colors.red,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
                   ),
                 );
 
@@ -225,21 +459,22 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
               await controller?.stopImageStream();
               if (!mounted) return;
               //Introducimos el formulario al Usuario
-              //si obtenemos los datos del producto y nos encontramos en la app (que no la hemos cerrado)
+              //Si obtenemos los datos del producto y nos encontramos en la app (que no la hemos cerrado)
 
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      FormView(productoEscaneado: resProcessBarcode!),
-                ),
-              );
               //Creamos una copia de controller
               CameraController? copyController = controller;
               setState(() {
                 controller = null;
               });
               await copyController?.dispose();
+
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      FormView(scannedProduct: resProcessBarcode!),
+                ),
+              );
               _getCamera();
             }
           } catch (er) {
@@ -254,15 +489,16 @@ class _ScannerViewState extends State<ScannerView> with WidgetsBindingObserver {
     }
   }
 
-  InputImage? processImg(CameraImage img) {
+  //Funcion para procesar los frames de la camara y extraer la informacion.
+  InputImage? _processImg(CameraImage img) {
     final WriteBuffer allBytes = WriteBuffer();
     for (final Plane plane in img.planes) {
-      //juntamos todos los planes dentro del writebuffer
+      //Juntamos todos los planes dentro del writebuffer
       allBytes.putUint8List(plane.bytes);
     }
     final bytes = allBytes.done().buffer.asUint8List();
 
-    //reconstruimos los bytes
+    //Reconstruimos los bytes
     final Size imgSize = Size(img.width.toDouble(), img.height.toDouble());
     final imgRotation = InputImageRotationValue.fromRawValue(
       controller!.description.sensorOrientation,

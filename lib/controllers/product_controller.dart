@@ -6,13 +6,13 @@ import '../services/database_helper.dart';
 
 class ProductController {
   Future<ModelProducts?> processBarcode(String barcode) async {
-    //llama a DatabaseHelper e intenta leer el producto (comprobar si esta registrado en local).
+    //Llama a DatabaseHelper e intenta leer el producto (comprobar si esta registrado en local).
     ModelProducts? obtainedProduct = await DatabaseHelper.instance
         .readProductByBarcode(barcode);
     if (obtainedProduct == null) {
       try {
         print('lo esta buscando en la api');
-        //busca el producto en la api externa.
+        //Busca el producto en la api externa.
         var apiProductReq = await ApiService.getProduct(barcode);
         if (apiProductReq == null) {
           return null;
@@ -26,18 +26,17 @@ class ProductController {
           image: apiProductReq?.imageFrontSmallUrl ?? 'imagen por defecto',
           categoryId: null,
         );
-        //insertamos el producto en la base de datos local.
-        // await DatabaseHelper.instance.insertProducts(apiObtainedProduct);
-        //le pasamos el producto obtenido a FormView
+        //Insertamos el producto en la base de datos local.
+        //await DatabaseHelper.instance.insertProducts(apiObtainedProduct);
+        //Le pasamos el producto obtenido a FormView
 
         return apiObtainedProduct;
-      } catch (er) {
-        print('error: $er');
-        return null;
+      } catch (error) {
+        throw Exception("Error de conexcion: $error");
       }
-      //en caso de que NO sea null (de que existe en la bbdd local).
+      //En caso de que NO sea null (de que existe en la bbdd local).
     } else {
-      //le pasamos el producto obtenido a FormView
+      //Le pasamos el producto obtenido a FormView
 
       return obtainedProduct;
     }

@@ -21,13 +21,37 @@ dependencies:
   google_mlkit_text_recognition: ^0.15.1
   google_fonts: ^8.1.0
   flutter_local_notifications: ^22.0.0
-  workmanager: ^0.9.0+3
+  timezone: ^0.11.0
+  flutter_timezone: ^5.1.0
+  sqflite_common_ffi: ^2.4.0+3
+  sqlite3_flutter_libs: ^0.6.0+eol
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
   flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icons/camara.png
+    - assets/icons/app_icon.png
+    - assets/icons/basura.png
+    - assets/icons/categorias.png
+    - assets/icons/despensa.png
+    - assets/icons/history.png
+    - assets/icons/home.png
+    - assets/icons/tick.png
+    - assets/icons/notFound.png
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#D9D689"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icons/app_icon.png"

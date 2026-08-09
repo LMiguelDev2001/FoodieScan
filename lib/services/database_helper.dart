@@ -18,7 +18,7 @@ class DatabaseHelper {
 
   Future<Database> dbInitiate() async {
     String dbPath = await getDatabasesPath();
-    String path = join(dbPath, 'foodScans.db');
+    String path = join(dbPath, 'foodieScan.db');
 
     return await openDatabase(path, version: 1, onCreate: _dbCreate);
   }
@@ -28,8 +28,8 @@ class DatabaseHelper {
     await db.execute('''
     CREATE TABLE categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      image TEXT NOT NULL    
+      name TEXT NOT NULL
+      
     )''');
 
     //creamos las categorias y las insertamos..
@@ -69,17 +69,14 @@ class DatabaseHelper {
   //funcion pora insertar las categorias.
   Future<void> addDefaultCategories(Database db) async {
     List<ModelCategories> addCategories = [
-      ModelCategories(name: 'lacteos', image: 'assets/1.png'),
-      ModelCategories(name: 'carne, huevos y pescados', image: 'assets/2.png'),
-      ModelCategories(
-        name: 'tubérculos, legumbres y frutos secos',
-        image: 'assets/3.png',
-      ),
-      ModelCategories(name: 'verduras y hortalizas', image: 'assets/4.png'),
-      ModelCategories(name: 'frutas ', image: 'assets/5.png'),
-      ModelCategories(name: 'pan, pasta, cereales', image: 'assets/6.png'),
-      ModelCategories(name: 'aceite y mantequillas', image: 'assets/7.png'),
-      ModelCategories(name: 'otros ', image: 'assets/8.png'),
+      ModelCategories(name: 'lacteos'),
+      ModelCategories(name: 'carne, huevos y pescados'),
+      ModelCategories(name: 'tubérculos, legumbres y frutos secos'),
+      ModelCategories(name: 'verduras y hortalizas'),
+      ModelCategories(name: 'frutas '),
+      ModelCategories(name: 'pan, pasta, cereales'),
+      ModelCategories(name: 'aceite y mantequillas'),
+      ModelCategories(name: 'otros '),
     ];
 
     for (ModelCategories defaultCategories in addCategories) {
@@ -122,7 +119,7 @@ class DatabaseHelper {
         .toList();
   }
 
-  //funcion para leer producto por codigo de barras.
+  //Funcion para leer producto por codigo de barras.
   //Se usa para buscar un producto y comprobar su existencia en la base de datos local.
   Future<ModelProducts?> readProductByBarcode(String code) async {
     Database db = await instance.db;
@@ -131,7 +128,7 @@ class DatabaseHelper {
       where: 'code = ?',
       whereArgs: [code],
     );
-    //si no encuentra el producto, no devuelve null, devuelve una lista vacia (pero no null);
+    //Si no encuentra el producto, no devuelve null, devuelve una lista vacia (pero no null);
     if (barcodeProduct.isEmpty) {
       return null;
     } else {
@@ -142,7 +139,7 @@ class DatabaseHelper {
     }
   }
 
-  //funcion para actualziar la categoria de product
+  //Funcion para actualziar la categoria de product
   Future<int> updateCategory(int categoryId, int id) async {
     Database db = await instance.db;
     return await db.rawUpdate('''
@@ -175,7 +172,7 @@ class DatabaseHelper {
 
   //funcion pora insertar las mercancias.
 
-  //funcion para leer la compra. Esto significa que la funcióln siguiente sirve para leer la compra
+  //Funcion para leer la compra.
   Future<List<ModelFridge>> readGoods() async {
     Database db = await instance.db;
 
@@ -198,7 +195,7 @@ class DatabaseHelper {
   }
 
   //Borrar un elemento de la nevera uno a uno. Si llega a 0, se borra el producto.
-  Future<void> deleteIndividualFridgeProduct(int id) async {
+  Future<int> deleteIndividualFridgeProduct(int id) async {
     Database db = await instance.db;
 
     await db.rawUpdate('''
@@ -207,7 +204,7 @@ class DatabaseHelper {
         WHERE id = $id         
     ''');
 
-    await db.rawDelete('''
+    return db.rawDelete('''
       DELETE FROM fridge
       WHERE id = $id AND quantity <= 0
       ''');
@@ -221,5 +218,23 @@ class DatabaseHelper {
       DELETE FROM fridge
       WHERE productId = $id
     ''');
+  }
+
+  Future<ModelFridge?> readFridgeProductByProductId(int id) async {
+    Database db = await instance.db;
+    final List<Map<String, dynamic>> fridgeProduct = await db.query(
+      'fridge',
+      where: 'productId = ?',
+      whereArgs: [id],
+    );
+    //si no encuentra el producto, no devuelve null, devuelve una lista vacia (pero no null);
+    if (fridgeProduct.isEmpty) {
+      return null;
+    } else {
+      return fridgeProduct
+          .map((mapped) => ModelFridge.fromMap(mapped))
+          .toList()
+          .first;
+    }
   }
 }
